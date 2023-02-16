@@ -52,20 +52,21 @@ def setup_surface_file(args, surf_file, dir_file):
     # skip if the direction file already exists
     if os.path.exists(surf_file):
         f = h5py.File(surf_file, 'r')
+        f.close()
         if (args.y and 'ycoordinates' in f.keys()) or 'xcoordinates' in f.keys():
-            f.close()
             print ("%s is already set up" % surf_file)
             return
 
     f = h5py.File(surf_file, 'a')
-    f['dir_file'] = dir_file
+    if not os.path.exists(surf_file):
+        f['dir_file'] = dir_file
 
     # Create the coordinates(resolutions) at which the function is evaluated
-    xcoordinates = np.linspace(args.xmin, args.xmax, num=args.xnum)
+    xcoordinates = np.linspace(args.xmin, args.xmax, num=int(args.xnum))
     f['xcoordinates'] = xcoordinates
 
     if args.y:
-        ycoordinates = np.linspace(args.ymin, args.ymax, num=args.ynum)
+        ycoordinates = np.linspace(args.ymin, args.ymax, num=int(args.ynum))
         f['ycoordinates'] = ycoordinates
     f.close()
 
@@ -120,14 +121,22 @@ def crunch(surf_file, net, w, s, d, dataloaders, loss_key, acc_key, comm, rank, 
 
         # Record the time to compute the loss value
         loss_start = time.time()
-        loss = 0
-        acc = 0
+        # loss = 0
+        # acc = 0
+        # for dataloader in dataloaders:
+        #     p_loss, p_acc = evaluation.eval_loss(net, criterion, dataloader, args.cuda)
+        #     loss += p_loss
+        #     acc += p_acc
+        # loss /= len(dataloaders)
+        # acc /= len(dataloaders)
+        t_loss = []
+        t_acc = []
         for dataloader in dataloaders:
             p_loss, p_acc = evaluation.eval_loss(net, criterion, dataloader, args.cuda)
-            loss += p_loss
-            acc += p_acc
-        loss /= len(dataloaders)
-        acc /= len(dataloaders)
+            t_loss.append(p_loss)
+            t_acc.append(p_acc)
+        loss = max(t_loss)
+        acc = max(t_acc)
         loss_compute_time = time.time() - loss_start
 
         # Record the result in the local array
@@ -213,12 +222,15 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store_true', default=False, help='use log scale for loss values')
     parser.add_argument('--plot', action='store_true', default=False, help='plot figures after computation')
 
+    parser.add_argument('--n_minority_classes', default=0, type=int, help='the index for the repeatness experiment')
+
     args = parser.parse_args()
 
     torch.manual_seed(123)
     #--------------------------------------------------------------------------
     # Environment setup
     #--------------------------------------------------------------------------
+    os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
     if args.mpi:
         comm = mpi.setup_MPI()
         rank, nproc = comm.Get_rank(), comm.Get_size()
@@ -250,7 +262,7 @@ if __name__ == '__main__':
     #--------------------------------------------------------------------------
     # Load models and extract parameters
     #--------------------------------------------------------------------------
-    with open('../save/checkpoint/state.pkl', 'rb') as f:
+    with open('../save/checkpoint/state_.pkl', 'rb') as f:
             checkpoint = pickle.load(f)
             clients = checkpoint['clients']
             server = checkpoint['server']
@@ -298,6 +310,7 @@ if __name__ == '__main__':
     for client in clients:
         subset = Subset(total_train_dataset, client.node_indices)
         train_loader = DataLoader(subset, client.args.batch_size, shuffle=True, num_workers=0)
+        trainloaders.append(train_loader)
 
     #--------------------------------------------------------------------------
     # Start the computation

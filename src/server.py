@@ -22,10 +22,14 @@ class Server:
         self.client_delta[client_id] = client_delta
 
     def aggregate(self):
-        weights = (1. + self.lambda_var - torch.mean(self.lambda_var)) / self.args.clients
+        # clients = self.args.clients
+        clients = 5
+        weights = (1. + self.lambda_var - torch.mean(self.lambda_var)) / clients
         delta_avg = {k: torch.zeros(v.shape, dtype=v.dtype) for k, v in self.model_parameters.items()}
         
-        for client_id in self.client_delta.keys():
+        client_losses = np.array(self.client_losses)
+        topk = np.argpartition(client_losses, -clients)[-clients:]
+        for client_id in topk:
             for k in delta_avg.keys():
                 delta_avg[k] = delta_avg[k] + (self.client_delta[client_id][k] * weights[client_id]).type(delta_avg[k].dtype)
 
