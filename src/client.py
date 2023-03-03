@@ -25,6 +25,7 @@ class Client:
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 test_loss += criterion(outputs, labels)
+        test_loss /= len(train_loader)
 
         old_param = copy.deepcopy(model.state_dict())
         labels = total_train_dataset.targets[self.node_indices]
@@ -49,6 +50,15 @@ class Client:
                 loss: torch.Tensor = criterion(output, labels)   # true loss
                 loss.backward()
                 optimizer.step()
+
+        # test_loss = 0.
+        # with torch.no_grad():
+        #     model.eval()
+        #     for inputs, labels in train_loader:
+        #         inputs, labels = inputs.to(device), labels.to(device)
+        #         outputs = model(inputs)
+        #         test_loss += criterion(outputs, labels)
+        # test_loss /= len(train_loader)
 
         delta = {k: v.sub(old_param[k]).to(torch.device('cpu')) for k, v in model.state_dict().items()}
         if self.args.weighted_avg == 0:

@@ -32,7 +32,7 @@ def allreduce_max(comm, array, display_info=False):
         return array
     array = np.asarray(array, dtype='d')
     total = np.zeros_like(array)
-    float_min = np.finfo(np.float).min
+    float_min = np.finfo(float).min
     total.fill(float_min)
 
     if display_info:
@@ -49,7 +49,7 @@ def allreduce_min(comm, array, display_info=False):
         return array
     array = np.asarray(array, dtype='d')
     total = np.zeros_like(array)
-    float_max = np.finfo(np.float).max
+    float_max = np.finfo(float).max
     total.fill(float_max)
 
     if display_info:
@@ -67,7 +67,7 @@ def reduce_max(comm, array, display_info=False):
         return array
     array = np.asarray(array, dtype='d')
     total = np.zeros_like(array)
-    float_min = np.finfo(np.float).min
+    float_min = np.finfo(float).min
     total.fill(float_min)
 
     if display_info:
@@ -84,7 +84,7 @@ def reduce_min(comm, array, display_info=False):
         return array
     array = np.asarray(array, dtype='d')
     total = np.zeros_like(array)
-    float_max = np.finfo(np.float).max
+    float_max = np.finfo(float).max
     total.fill(float_max)
 
     if display_info:

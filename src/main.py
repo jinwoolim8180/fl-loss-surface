@@ -71,10 +71,10 @@ if __name__ == "__main__":
     train_dataset = get_dataset(args, 'train')
     if not args.resume_checkpoint:
         start_round = 0
-        indices = split_client_indices(train_dataset, args, coloured=True)
+        indices = split_client_indices(train_dataset, args, coloured=False)
 
         # create pseudo server
-        server = Server(args)
+        server = Server(args, train_dataset, indices)
 
         # for FedDyn optimizer
         model = models.get_model(args)
@@ -135,7 +135,7 @@ if __name__ == "__main__":
             testQ.put({'round': roundIdx, 'model_parameters': copy.deepcopy(server.model_parameters)})
             print(f"Elapsed Time : {(time.time()-cur_time):.1f}")
 
-        if roundIdx == args.checkpoint_round:
+        if roundIdx % args.checkpoint_round == 0:
             with open('../save/checkpoint/state_.pkl', 'wb') as f:
                 pickle.dump({'clients': clients, 'server': server, 'round': roundIdx}, f)
         
